@@ -10,3 +10,4 @@ fastapi==0.70.1
 Pillow==9.0.0
 uvicorn
 python-multipart
+opencv-python
