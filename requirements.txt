@@ -3,7 +3,6 @@ https://download.pytorch.org/whl/cpu/torchvision-0.7.0%2Bcpu-cp37-cp37m-linux_x8
 albumentations==1.1.0
 numpy==1.19.3
 matplotlib==3.0.2
-opencv_python==4.5.4.58
 uvicorn==0.16.0
 starlette==0.16.0
 fastapi==0.70.1
