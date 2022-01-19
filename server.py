@@ -26,7 +26,6 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.environ.get("AWS_REGION")
 S3_Bucket = os.environ.get("S3_Bucket")
-S3_Key = 'cair-bucket'
 
 s3_client = S3_SERVICE(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)
 
@@ -78,7 +77,7 @@ def transform_image(bytes):
 
 # upload and store the image and metadata -> process on ensemble -> store results -> push to client
 
-"""@app.post('/upload')
+@app.post('/upload')
 async def upload(image: UploadFile = File(...)):
     directory = os.path.dirname(os.path.realpath(__file__))
 
@@ -96,22 +95,7 @@ async def upload(image: UploadFile = File(...)):
     with open(filename, "rb") as f:
         s3.upload_fileobj(f, "cair-bucket", filename)
 
-    return { 'success': filename }"""
-
-@app.post("/upload", status_code=200, description="***** Upload png asset to S3 *****")
-async def upload(fileobject: UploadFile = File(...)):
-    filename = fileobject.filename
-    current_time = datetime.datetime.now()
-    split_file_name = os.path.splitext(filename)   #split the file name into two different path (string + extention)
-    file_name_unique = str(current_time.timestamp()).replace('.','')  #for realtime application you must have genertae unique name for the file
-    file_extension = split_file_name[1]  #file extention
-    data = fileobject.file._file  # Converting tempfile.SpooledTemporaryFile to io.BytesIO
-    uploads3 = await s3_client.upload_fileobj(bucket=S3_Bucket, key=S3_Key + file_name_unique+  file_extension, fileobject=data)
-    if uploads3:
-        s3_url = f"https://{S3_Bucket}.s3.{AWS_REGION}.amazonaws.com/{S3_Key}{file_name_unique +  file_extension}"
-        return {"status": "success", "image_url": s3_url}  #response added 
-    else:
-        raise HTTPException(status_code=400, detail="Failed to upload in S3")
+    return { 'success': filename }
 
 @app.post('/predict')
 async def predict(image: UploadFile = File(...)):
