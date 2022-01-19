@@ -69,6 +69,11 @@ def transform_image(bytes):
 @app.post('/upload')
 async def upload(image: UploadFile = File(...)):
     directory = os.path.dirname(os.path.realpath(__file__))
+
+    if not os.path.exists(f'{directory}/uploads'):
+        os.makedirs(f'{directory}/uploads')
+        print('Making directory!', directory)
+
     filename = f'{directory}/uploads/{time.time()}-{image.filename}'
     f = open(f'{filename}', 'wb')
     content = await image.read()
