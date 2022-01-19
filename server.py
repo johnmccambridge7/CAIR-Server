@@ -63,6 +63,20 @@ def transform_image(bytes):
     image = Image.open(io.BytesIO(bytes))
     return tfs(image).unsqueeze(0)
 
+# upload and store the image and metadata -> process on ensemble -> store results -> push to client
+
+
+@app.post('/upload')
+async def upload(image: UploadFile = File(...)):
+    directory = os.path.dirname(os.path.realpath(__file__))
+    filename = f'{directory}/uploads/{time.time()}-{image.filename}'
+    f = open(f'{filename}', 'wb')
+    content = await image.read()
+    transformed = transform_image(content)
+    save_image(transformed[0], filename)
+
+    return {'success': True}
+
 @app.post('/predict')
 async def predict(image: UploadFile = File(...)):
     # upload and store the image from device
