@@ -10,24 +10,14 @@ import albumentations
 from torchvision.utils import save_image
 from gradCAM import *
 from albumentations.pytorch import ToTensorV2
+
 import torch
 from models import EfficientNet
 
 import shutil
 import uvicorn
 from starlette.responses import StreamingResponse
-from fastapi import FastAPI, File, UploadFile, HTTPException, Body
-
-import datetime
-from s3_events.s3_utils import S3_SERVICE
-from dotenv import load_env
-
-AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
-AWS_REGION = os.environ.get("AWS_REGION")
-S3_Bucket = os.environ.get("S3_Bucket")
-
-s3_client = S3_SERVICE(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)
+from fastapi import FastAPI, File, UploadFile
 
 KERNEL = '9c_b4ns_768_768_ext_15ep'
 OUTPUT = 9
@@ -65,6 +55,26 @@ model.eval()
 
 visualizer = GradCam(model, device)
 
+def sign_s3(file_name, file_type):
+  S3_BUCKET = os.environ.get('S3_BUCKET')
+  s3 = boto3.client('s3')
+
+  presigned_post = s3.generate_presigned_post(
+    Bucket = S3_BUCKET,
+    Key = file_name,
+    Fields = {"acl": "public-read", "Content-Type": file_type},
+    Conditions = [
+      {"acl": "public-read"},
+      {"Content-Type": file_type}
+    ],
+    ExpiresIn = 3600
+  )
+
+  return json.dumps({
+    'data': presigned_post,
+    'url': 'https://%s.s3.amazonaws.com/%s' % (S3_BUCKET, file_name)
+  })
+
 def transform_image(bytes):
     tfs = transforms.Compose([transforms.Resize(224),
                                     transforms.CenterCrop(224),
@@ -76,6 +86,24 @@ def transform_image(bytes):
     return tfs(image).unsqueeze(0)
 
 # upload and store the image and metadata -> process on ensemble -> store results -> push to client
+
+
+def upload_file(file_name, bucket, object_name=None):
+    """Upload a file to an S3 bucket
+
+    :param file_name: File to upload
+    :param bucket: Bucket to upload to
+    :param object_name: S3 object name. If not specified then file_name is used
+    :return: True if file was uploaded, else False
+    """
+
+    # If S3 object_name was not specified, use file_name
+    if object_name is None:
+        object_name = os.path.basename(file_name)
+
+    # Upload the file
+    s3_client = boto3.client('s3')
+    return s3_client.upload_file(file_name, bucket, object_name)
 
 @app.post('/upload')
 async def upload(image: UploadFile = File(...)):
