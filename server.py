@@ -2,6 +2,7 @@ import io
 import os
 import time
 import boto3
+import json
 import matplotlib.pyplot as plt
 from PIL import Image
 import torchvision.transforms as transforms
@@ -9,14 +10,25 @@ import albumentations
 from torchvision.utils import save_image
 from gradCAM import *
 from albumentations.pytorch import ToTensorV2
-
 import torch
 from models import EfficientNet
 
 import shutil
 import uvicorn
 from starlette.responses import StreamingResponse
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body
+
+import datetime
+from s3_events.s3_utils import S3_SERVICE
+from dotenv import load_env
+
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.environ.get("AWS_REGION")
+S3_Bucket = os.environ.get("S3_Bucket")
+S3_Key = 'cair-bucket'
+
+s3_client = S3_SERVICE(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)
 
 KERNEL = '9c_b4ns_768_768_ext_15ep'
 OUTPUT = 9
@@ -66,25 +78,7 @@ def transform_image(bytes):
 
 # upload and store the image and metadata -> process on ensemble -> store results -> push to client
 
-
-def upload_file(file_name, bucket, object_name=None):
-    """Upload a file to an S3 bucket
-
-    :param file_name: File to upload
-    :param bucket: Bucket to upload to
-    :param object_name: S3 object name. If not specified then file_name is used
-    :return: True if file was uploaded, else False
-    """
-
-    # If S3 object_name was not specified, use file_name
-    if object_name is None:
-        object_name = os.path.basename(file_name)
-
-    # Upload the file
-    s3_client = boto3.client('s3')
-    return s3_client.upload_file(file_name, bucket, object_name)
-
-@app.post('/upload')
+"""@app.post('/upload')
 async def upload(image: UploadFile = File(...)):
     directory = os.path.dirname(os.path.realpath(__file__))
 
@@ -102,7 +96,22 @@ async def upload(image: UploadFile = File(...)):
     with open(filename, "rb") as f:
         s3.upload_fileobj(f, "cair-bucket", filename)
 
-    return { 'success': filename }
+    return { 'success': filename }"""
+
+@app.post("/upload", status_code=200, description="***** Upload png asset to S3 *****")
+async def upload(fileobject: UploadFile = File(...)):
+    filename = fileobject.filename
+    current_time = datetime.datetime.now()
+    split_file_name = os.path.splitext(filename)   #split the file name into two different path (string + extention)
+    file_name_unique = str(current_time.timestamp()).replace('.','')  #for realtime application you must have genertae unique name for the file
+    file_extension = split_file_name[1]  #file extention
+    data = fileobject.file._file  # Converting tempfile.SpooledTemporaryFile to io.BytesIO
+    uploads3 = await s3_client.upload_fileobj(bucket=S3_Bucket, key=S3_Key + file_name_unique+  file_extension, fileobject=data)
+    if uploads3:
+        s3_url = f"https://{S3_Bucket}.s3.{AWS_REGION}.amazonaws.com/{S3_Key}{file_name_unique +  file_extension}"
+        return {"status": "success", "image_url": s3_url}  #response added 
+    else:
+        raise HTTPException(status_code=400, detail="Failed to upload in S3")
 
 @app.post('/predict')
 async def predict(image: UploadFile = File(...)):
