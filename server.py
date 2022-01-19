@@ -75,12 +75,11 @@ async def upload(image: UploadFile = File(...)):
         print('Making directory!', directory)
 
     filename = f'{directory}/uploads/{time.time()}-{image.filename}'
-    f = open(f'{filename}', 'wb')
     content = await image.read()
     transformed = transform_image(content)
     save_image(transformed[0], filename)
 
-    return {'success': True}
+    return {'success': filename}
 
 @app.post('/predict')
 async def predict(image: UploadFile = File(...)):
