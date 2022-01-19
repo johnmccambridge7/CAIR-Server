@@ -1,6 +1,8 @@
 import io
 import os
 import time
+import boto3
+from s3_functions import upload_file, show_image
 import matplotlib.pyplot as plt
 from PIL import Image
 import torchvision.transforms as transforms
@@ -66,6 +68,23 @@ def transform_image(bytes):
 # upload and store the image and metadata -> process on ensemble -> store results -> push to client
 
 
+def upload_file(file_name, bucket, object_name=None):
+    """Upload a file to an S3 bucket
+
+    :param file_name: File to upload
+    :param bucket: Bucket to upload to
+    :param object_name: S3 object name. If not specified then file_name is used
+    :return: True if file was uploaded, else False
+    """
+
+    # If S3 object_name was not specified, use file_name
+    if object_name is None:
+        object_name = os.path.basename(file_name)
+
+    # Upload the file
+    s3_client = boto3.client('s3')
+    return s3_client.upload_file(file_name, bucket, object_name)
+
 @app.post('/upload')
 async def upload(image: UploadFile = File(...)):
     directory = os.path.dirname(os.path.realpath(__file__))
@@ -78,6 +97,11 @@ async def upload(image: UploadFile = File(...)):
     content = await image.read()
     transformed = transform_image(content)
     save_image(transformed[0], filename)
+
+    s3 = boto3.client('s3')
+
+    with open(filename, "rb") as f:
+        s3.upload_fileobj(f, "cair-bucket", filename)
 
     return { 'success': filename }
 
