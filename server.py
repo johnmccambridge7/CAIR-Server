@@ -79,7 +79,7 @@ async def upload(image: UploadFile = File(...)):
     transformed = transform_image(content)
     save_image(transformed[0], filename)
 
-    return {'success': filename}
+    return { 'success': filename }
 
 @app.post('/predict')
 async def predict(image: UploadFile = File(...)):
