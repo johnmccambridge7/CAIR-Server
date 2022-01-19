@@ -2,7 +2,6 @@ import io
 import os
 import time
 import boto3
-from s3_functions import upload_file, show_image
 import matplotlib.pyplot as plt
 from PIL import Image
 import torchvision.transforms as transforms
