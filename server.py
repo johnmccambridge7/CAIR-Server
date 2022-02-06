@@ -40,7 +40,7 @@ class Location(BaseModel):
     lng: str
     zm: str
 
-def load_checkpoint(checkpoint, cuda):
+"""def load_checkpoint(checkpoint, cuda):
     from imageModels.brnet import BRNet, BRNetv2
     assert os.path.exists("{}/{}".format(Checkpoint_DIR, checkpoint)
                           ), "{} does not exists.".format(checkpoint)
@@ -55,9 +55,9 @@ def load_checkpoint(checkpoint, cuda):
         torch.load(os.path.join(Checkpoint_DIR, checkpoint), map_location=torch.device('cpu')))
 
     print("Loaded checkpoint: {}".format(checkpoint))
-    return net.eval(), is_multi
+    return net.eval(), is_multi"""
 
-housingModel, is_multi = load_checkpoint('BRNet-3*1*24-NZ32km2_iter_5000.pth', False)
+# housingModel, is_multi = load_checkpoint('BRNet-3*1*24-NZ32km2_iter_5000.pth', False)
 
 KERNEL = '9c_b4ns_768_768_ext_15ep'
 OUTPUT = 9
