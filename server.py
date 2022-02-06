@@ -25,9 +25,8 @@ import uvicorn
 from starlette.responses import StreamingResponse
 from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
-
-import firebase_admin
-from firebase_admin import credentials
+# import firebase_admin
+# from firebase_admin import credentials
 #from firebase_admin import db
 
 #cred = credentials.Certificate('./service.json')

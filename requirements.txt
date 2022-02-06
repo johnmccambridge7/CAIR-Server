@@ -13,3 +13,5 @@ uvicorn
 python-multipart
 opencv-python-headless==4.2.0.32
 boto3
+google-cloud-firestore
+requests
