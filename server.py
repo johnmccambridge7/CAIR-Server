@@ -37,6 +37,7 @@ firebase_admin.initialize_app(cred, {
 firestoreDB = firestore.Client()
 
 Checkpoint_DIR = '.'
+transform = transforms.ToPILImage()
 
 class Location(BaseModel):
     lat: str
@@ -189,8 +190,16 @@ async def location(data: Location):
     url = f'https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/{lng},{lat},{zm},0/1200x1200?access_token=pk.eyJ1Ijoiam9obm1jY2FtYnJpZGdlIiwiYSI6ImNrejh5MXh4djFwNjEydm16ZHVxMWRhMnAifQ.XuCE1B8RucG4DWsa1iIczQ'
     response = requests.get(url)
     mapImage = Image.open(BytesIO(response.content))
-
     x = np.array(mapImage)
+
+    width, height = 1200, 1200
+    new_width, new_height = 50, 50
+
+    left = (width - new_width)/2
+    top = (height - new_height)/2
+    right = (width + new_width)/2
+    bottom = (height + new_height)/2
+
     x = (x / 255).transpose((2, 0, 1))
 
     img = torch.from_numpy(x).float()
@@ -202,6 +211,9 @@ async def location(data: Location):
     locationScore = np.round(np.sum(locationSquare) / (new_height * new_width), 2)
 
     db.reference().set({ "location": f"{locationScore}" })
+    
+    save_image(gen_y[0], "output.png")
+    mapImage.save("real.png")
 
     return "John"
 
